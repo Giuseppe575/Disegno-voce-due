@@ -1,0 +1,62 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Disegno Vocale CAD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        canvas { border: 1px solid #000; margin-top: 20px; touch-action: none; }
+        button { padding: 10px 20px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h2>🗣️ Disegna con la voce (Beta)</h2>
+    <button onclick="startListening()">🎤 Inizia Ascolto</button>
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        let x = 100, y = 100;
+
+        function startListening() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "it-IT";
+            recognition.start();
+
+            recognition.onresult = function(event) {
+                const comando = event.results[0][0].transcript.toLowerCase();
+                console.log("Comando riconosciuto:", comando);
+
+                if (comando.includes("linea lunga")) {
+                    const metri = parseFloat(comando.match(/\d+/));
+                    const pixel = metri * 100;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + pixel, y);
+                    ctx.stroke();
+                    x += pixel;
+                }
+
+                else if (comando.includes("rettangolo")) {
+                    const larghezza = parseFloat(comando.match(/rettangolo.*?(\d+)/)[1]) * 100;
+                    const altezza = parseFloat(comando.match(/alto.*?(\d+)/)[1]) * 100;
+                    ctx.strokeRect(x, y, larghezza, altezza);
+                    x += larghezza + 20;
+                }
+
+                else if (comando.includes("spessore")) {
+                    const spessore = parseFloat(comando.match(/\d+/));
+                    ctx.lineWidth = spessore;
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error("Errore nel riconoscimento vocale:", event.error);
+            };
+        }
+    </script>
+</body>
+</html>
