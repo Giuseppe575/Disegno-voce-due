@@ -1,27 +1,42 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <title>Disegno Vocale Stanza</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    canvas { border: 1px solid #000; margin-top: 20px; touch-action: none; background-color: #fff; }
-    button { padding: 10px 20px; font-size: 16px; }
-  </style>
-</head>
-<body>
-  <h2>📐 Disegno Vocale di una Stanza</h2>
-  <button onclick="startListening()">🎤 Inizia Ascolto</button>
-  <p id="debug" style="font-family: monospace;"></p>
-  <canvas id="canvas" width="1000" height="700"></canvas>
-
-  <script>
+<script>
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
   let x = 100, y = 100;
   let spessore = 20;
   let direzione = "destra";
+
+  function disegnaGriglia() {
+    ctx.strokeStyle = "#e0e0e0";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < canvas.width; i += 100) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, canvas.height);
+      ctx.stroke();
+    }
+    for (let j = 0; j < canvas.height; j += 100) {
+      ctx.beginPath();
+      ctx.moveTo(0, j);
+      ctx.lineTo(canvas.width, j);
+      ctx.stroke();
+    }
+  }
+
+  function pulisciCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    disegnaGriglia();
+    x = 100;
+    y = 100;
+  }
+
+  function salvaPNG() {
+    const link = document.createElement("a");
+    link.download = "disegno_vocale.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  disegnaGriglia();
 
   function startListening() {
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -33,28 +48,30 @@
       const comando = event.results[0][0].transcript.toLowerCase();
       document.getElementById("debug").innerText = "Comando: " + comando;
 
-      // Punto iniziale
       if (comando.includes("inizia") && comando.match(/\d+/g)) {
         const numeri = comando.match(/\d+/g);
-        x = parseInt(numeri[0]);
-        y = parseInt(numeri[1]);
+        if (numeri.length >= 2) {
+          x = parseInt(numeri[0]);
+          y = parseInt(numeri[1]);
+          ctx.beginPath();
+          ctx.fillStyle = "red";
+          ctx.arc(x, y, 5, 0, 2 * Math.PI);
+          ctx.fill();
+        }
         return;
       }
 
-      // Spessore parete
       if (comando.includes("imposta spessore")) {
         const match = comando.match(/\d+/);
         if (match) spessore = parseInt(match[0]);
         return;
       }
 
-      // Direzione
       const direzioni = ["destra", "sinistra", "alto", "basso"];
       direzioni.forEach(dir => {
         if (comando.includes("verso " + dir)) direzione = dir;
       });
 
-      // Parete
       if (comando.includes("parete lunga") || comando.includes("linea lunga")) {
         const match = comando.match(/\d+/);
         if (match) {
@@ -72,8 +89,14 @@
           ctx.fillStyle = "black";
           if (direzione === "destra" || direzione === "sinistra") {
             ctx.fillRect(Math.min(x, x2), y - spessore / 2, Math.abs(x2 - x), spessore);
+            ctx.fillStyle = "blue";
+            ctx.font = "14px Arial";
+            ctx.fillText(`${metri} m`, (x + x2) / 2 - 10, y - spessore);
           } else {
             ctx.fillRect(x - spessore / 2, Math.min(y, y2), spessore, Math.abs(y2 - y));
+            ctx.fillStyle = "blue";
+            ctx.font = "14px Arial";
+            ctx.fillText(`${metri} m`, x + spessore, (y + y2) / 2);
           }
 
           x = x2;
@@ -81,13 +104,11 @@
         }
       }
 
-      // Porta
       if (comando.includes("porta")) {
         ctx.fillStyle = "brown";
         ctx.fillRect(x - 40, y - spessore / 2, 80, spessore);
       }
 
-      // Finestra
       if (comando.includes("finestra")) {
         ctx.fillStyle = "lightblue";
         ctx.fillRect(x - 50, y - spessore / 2, 100, spessore);
@@ -99,5 +120,3 @@
     };
   }
 </script>
-</body>
-</html>
