@@ -17,93 +17,87 @@
   <canvas id="canvas" width="1000" height="700"></canvas>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    let x = 100, y = 100;
-    let spessore = 20;
-    let direzione = "destra";
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  let x = 100, y = 100;
+  let spessore = 20;
+  let direzione = "destra";
 
+  function startListening() {
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = "it-IT";
-    recognition.continuous = true;
     recognition.interimResults = false;
+    recognition.start();
 
-    function startListening() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-      recognition.lang = "it-IT";
-      recognition.start();
-    }
-
-      recognition.onresult = function(event) {
-        const comando = event.results[0][0].transcript.toLowerCase();
     recognition.onresult = function(event) {
-        const lastResult = event.results[event.results.length - 1][0];
-        const comando = lastResult.transcript.toLowerCase();
-        document.getElementById("debug").innerText = "Comando: " + comando;
+      const comando = event.results[0][0].transcript.toLowerCase();
+      document.getElementById("debug").innerText = "Comando: " + comando;
 
-        // Imposta punto iniziale
-        if (comando.includes("inizia") && comando.match(/\\d+/g)) {
-          const numeri = comando.match(/\\d+/g);
-          x = parseInt(numeri[0]);
-          y = parseInt(numeri[1]);
-          return;
-        }
+      // Punto iniziale
+      if (comando.includes("inizia") && comando.match(/\d+/g)) {
+        const numeri = comando.match(/\d+/g);
+        x = parseInt(numeri[0]);
+        y = parseInt(numeri[1]);
+        return;
+      }
 
-        // Imposta spessore pareti
-        if (comando.includes("imposta spessore")) {
-          const match = comando.match(/\\d+/);
-          if (match) spessore = parseInt(match[0]);
-          return;
-        }
+      // Spessore parete
+      if (comando.includes("imposta spessore")) {
+        const match = comando.match(/\d+/);
+        if (match) spessore = parseInt(match[0]);
+        return;
+      }
 
-        // Cambia direzione
-        const direzioni = ["destra", "sinistra", "alto", "basso"];
-        direzioni.forEach(dir => {
-          if (comando.includes("verso " + dir)) direzione = dir;
-        });
+      // Direzione
+      const direzioni = ["destra", "sinistra", "alto", "basso"];
+      direzioni.forEach(dir => {
+        if (comando.includes("verso " + dir)) direzione = dir;
+      });
 
-        // Disegna parete
-        if (comando.includes("parete lunga") || comando.includes("linea lunga")) {
-@@ -68,34 +73,37 @@
+      // Parete
+      if (comando.includes("parete lunga") || comando.includes("linea lunga")) {
+        const match = comando.match(/\d+/);
+        if (match) {
+          const metri = parseFloat(match[0]);
+          const pixel = metri * 100;
+          let x2 = x, y2 = y;
 
-            ctx.beginPath();
-            ctx.lineWidth = 1;
-            ctx.fillStyle = "black";
-            if (direzione === "destra" || direzione === "sinistra") {
-              ctx.fillRect(Math.min(x, x2), y - spessore / 2, Math.abs(x2 - x), spessore);
-            } else {
-              ctx.fillRect(x - spessore / 2, Math.min(y, y2), spessore, Math.abs(y2 - y));
-            }
+          if (direzione === "destra") x2 += pixel;
+          if (direzione === "sinistra") x2 -= pixel;
+          if (direzione === "alto") y2 -= pixel;
+          if (direzione === "basso") y2 += pixel;
 
-            x = x2; y = y2;
+          ctx.beginPath();
+          ctx.lineWidth = 1;
+          ctx.fillStyle = "black";
+          if (direzione === "destra" || direzione === "sinistra") {
+            ctx.fillRect(Math.min(x, x2), y - spessore / 2, Math.abs(x2 - x), spessore);
+          } else {
+            ctx.fillRect(x - spessore / 2, Math.min(y, y2), spessore, Math.abs(y2 - y));
           }
+
+          x = x2;
+          y = y2;
         }
+      }
 
-        // Aggiungi porta
-        if (comando.includes("porta")) {
-          ctx.fillStyle = "brown";
-          ctx.fillRect(x - 40, y - spessore / 2, 80, spessore);
-        }
+      // Porta
+      if (comando.includes("porta")) {
+        ctx.fillStyle = "brown";
+        ctx.fillRect(x - 40, y - spessore / 2, 80, spessore);
+      }
 
-        // Aggiungi finestra
-        if (comando.includes("finestra")) {
-          ctx.fillStyle = "lightblue";
-          ctx.fillRect(x - 50, y - spessore / 2, 100, spessore);
-        }
-      };
-        };
+      // Finestra
+      if (comando.includes("finestra")) {
+        ctx.fillStyle = "lightblue";
+        ctx.fillRect(x - 50, y - spessore / 2, 100, spessore);
+      }
+    };
 
-      recognition.onerror = function(event) {
-        console.error("Errore nel riconoscimento vocale:", event.error);
-      };
-    }
-        recognition.onerror = function(event) {
-          console.error("Errore nel riconoscimento vocale:", event.error);
-        };
-
-        recognition.onend = function() {
-          recognition.start();
-        };
-  </script>
+    recognition.onerror = function(event) {
+      console.error("Errore nel riconoscimento vocale:", event.error);
+    };
+  }
+</script>
 </body>
 </html>
