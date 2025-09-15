@@ -1,136 +1,625 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disegno Vocale di una Stanza</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f5f5;
+      --text: #263238;
+      --accent: #1565c0;
+      --accent-light: #4fc3f7;
+      --border: #b0bec5;
+      --shadow: rgba(38, 50, 56, 0.2);
+      --error: #d32f2f;
+      --success: #388e3c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+
+    p.description {
+      margin-top: 0;
+      margin-bottom: 24px;
+      color: #546e7a;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: var(--accent);
+      color: white;
+      box-shadow: 0 6px 14px var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+    }
+
+    button.secondary {
+      background: #78909c;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    button:not(:disabled):hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 16px var(--shadow);
+    }
+
+    .helper {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+      margin-bottom: 24px;
+    }
+
+    .helper h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .helper ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px 24px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    }
+
+    .status {
+      margin-top: 24px;
+    }
+
+    #debug {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      min-height: 120px;
+      font-family: "Fira Code", "Courier New", monospace;
+      box-shadow: inset 0 0 0 1px var(--border);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 4px 0;
+    }
+
+    .log-entry time {
+      font-size: 0.75rem;
+      color: #90a4ae;
+      min-width: 56px;
+    }
+
+    .log-entry.error {
+      color: var(--error);
+    }
+
+    .log-entry.success {
+      color: var(--success);
+    }
+
+    @media (max-width: 768px) {
+      main {
+        padding: 16px 12px 32px;
+      }
+
+      button {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .helper ul {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      }
+    }
+  </style>
+</head>
 <body>
-  <h2>📐 Disegno Vocale di una Stanza</h2>
-  <button onclick="startListening()">🎤 Inizia Ascolto</button>
-  <button onclick="pulisciCanvas()">🧹 Pulisci</button>
-  <button onclick="salvaPNG()">💾 Salva come PNG</button>
-  <p id="debug" style="font-family: monospace;"></p>
-  <canvas id="canvas" width="1000" height="700"></canvas>
+  <main>
+    <h1>📐 Disegno vocale della stanza</h1>
+    <p class="description">
+      Controlla il disegno della stanza con la tua voce: imposta un punto iniziale, disegna pareti,
+      aggiungi porte e finestre e salva l'immagine finale in pochi istanti.
+    </p>
+
+    <section id="controls">
+      <button id="startListening"><span>🎤</span>Inizia ascolto</button>
+      <button id="stopListening" class="secondary" disabled><span>⏹️</span>Ferma ascolto</button>
+      <button id="clearCanvas" class="secondary"><span>🧹</span>Pulisci</button>
+      <button id="savePng"><span>💾</span>Salva PNG</button>
+    </section>
+
+    <section class="helper">
+      <h2>Comandi disponibili</h2>
+      <ul>
+        <li><strong>"Inizia a X Y"</strong> — imposta il punto iniziale.</li>
+        <li><strong>"Imposta spessore N"</strong> — definisce lo spessore delle pareti in pixel.</li>
+        <li><strong>"Imposta scala N"</strong> — indica quanti pixel corrispondono ad 1 metro.</li>
+        <li><strong>"Verso destra/sinistra/alto/basso"</strong> — cambia la direzione di disegno.</li>
+        <li><strong>"Parete lunga N metri"</strong> — disegna la parete nella direzione impostata.</li>
+        <li><strong>"Porta L"</strong> — inserisce una porta (larghezza in metri, opzionale).</li>
+        <li><strong>"Finestra L"</strong> — inserisce una finestra (larghezza in metri, opzionale).</li>
+        <li><strong>"Pulisci"</strong> — ripulisce il canvas e riposiziona il punto iniziale.</li>
+      </ul>
+    </section>
+
+    <canvas id="canvas" width="1100" height="720" aria-label="Disegno della stanza"></canvas>
+
+    <section class="status">
+      <h2>Registro comandi</h2>
+      <div id="debug" role="log" aria-live="polite"></div>
+    </section>
+  </main>
 
   <script>
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
-    let x = 100, y = 100;
-    let spessore = 20;
-    let direzione = "destra";
+    const debugContainer = document.getElementById("debug");
+    const startButton = document.getElementById("startListening");
+    const stopButton = document.getElementById("stopListening");
+    const clearButton = document.getElementById("clearCanvas");
+    const saveButton = document.getElementById("savePng");
 
-    function disegnaGriglia() {
-      ctx.strokeStyle = "#e0e0e0";
-      ctx.lineWidth = 1;
-      for (let i = 0; i < canvas.width; i += 100) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, canvas.height);
-        ctx.stroke();
-      }
-      for (let j = 0; j < canvas.height; j += 100) {
-        ctx.beginPath();
-        ctx.moveTo(0, j);
-        ctx.lineTo(canvas.width, j);
-        ctx.stroke();
-      }
-    }
+    const state = {
+      cursorX: 100,
+      cursorY: 100,
+      anchorX: 100,
+      anchorY: 100,
+      thickness: 20,
+      direction: "destra",
+      scale: 100,
+      recognition: null,
+      listening: false,
+      messages: [],
+      elements: []
+    };
 
-    function pulisciCanvas() {
+    const directionVectors = {
+      destra: { x: 1, y: 0 },
+      sinistra: { x: -1, y: 0 },
+      alto: { x: 0, y: -1 },
+      basso: { x: 0, y: 1 }
+    };
+
+    function drawGrid() {
+      ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      disegnaGriglia();
-      x = 100;
-      y = 100;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#eceff1";
+
+      const step = Math.max(50, state.scale);
+      for (let x = 0; x <= canvas.width; x += step) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      for (let y = 0; y <= canvas.height; y += step) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = "#b0bec5";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(0, state.anchorY);
+      ctx.lineTo(canvas.width, state.anchorY);
+      ctx.moveTo(state.anchorX, 0);
+      ctx.lineTo(state.anchorX, canvas.height);
+      ctx.stroke();
+
+      ctx.restore();
     }
 
-    function salvaPNG() {
+    function drawAnchor() {
+      ctx.save();
+      ctx.fillStyle = "#d32f2f";
+      ctx.beginPath();
+      ctx.arc(state.anchorX, state.anchorY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMarker() {
+      ctx.save();
+      ctx.fillStyle = "#ffa000";
+      ctx.beginPath();
+      ctx.arc(state.cursorX, state.cursorY, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMeasurement(lengthMeters, centerX, centerY, horizontal) {
+      ctx.save();
+      ctx.fillStyle = "#1565c0";
+      ctx.font = "14px 'Segoe UI', Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = horizontal ? "bottom" : "middle";
+      const text = formatMeters(lengthMeters);
+
+      if (horizontal) {
+        ctx.fillText(text, centerX, centerY);
+      } else {
+        ctx.translate(centerX, centerY);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(text, 0, 0);
+      }
+      ctx.restore();
+    }
+
+    function drawLabel(text, centerX, centerY, horizontal) {
+      ctx.save();
+      ctx.fillStyle = "#37474f";
+      ctx.font = "12px 'Segoe UI', Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      if (horizontal) {
+        ctx.fillText(text, centerX, centerY);
+      } else {
+        ctx.translate(centerX, centerY);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(text, 0, 0);
+      }
+      ctx.restore();
+    }
+
+    function renderScene() {
+      drawGrid();
+      state.elements.forEach(element => {
+        if (element.type === "wall") {
+          renderWall(element);
+        } else if (element.type === "opening") {
+          renderOpening(element);
+        }
+      });
+      drawAnchor();
+      drawMarker();
+    }
+
+    function renderWall(element) {
+      const { fromX, fromY, toX, toY, thickness, meters } = element;
+      const horizontal = Math.abs(toX - fromX) >= Math.abs(toY - fromY);
+
+      ctx.save();
+      ctx.fillStyle = "#263238";
+
+      if (horizontal) {
+        ctx.fillRect(Math.min(fromX, toX), fromY - thickness / 2, Math.abs(toX - fromX), thickness);
+        drawMeasurement(meters, (fromX + toX) / 2, fromY - thickness, true);
+      } else {
+        ctx.fillRect(fromX - thickness / 2, Math.min(fromY, toY), thickness, Math.abs(toY - fromY));
+        drawMeasurement(meters, fromX + thickness, (fromY + toY) / 2, false);
+      }
+
+      ctx.restore();
+    }
+
+    function renderOpening(element) {
+      const { centerX, centerY, width, height, color, label, meters, horizontal } = element;
+      const startX = centerX - width / 2;
+      const startY = centerY - height / 2;
+
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.fillRect(startX, startY, width, height);
+      ctx.strokeStyle = "#37474f";
+      ctx.strokeRect(startX, startY, width, height);
+      ctx.restore();
+
+      drawLabel(`${label} ${formatMeters(meters)}`, centerX, centerY, horizontal);
+    }
+
+    function drawWall(lengthMeters) {
+      const dir = directionVectors[state.direction];
+      if (!dir) {
+        logMessage("Direzione non valida: imposta prima una direzione.", "error");
+        return;
+      }
+
+      const pixelLength = lengthMeters * state.scale;
+      const fromX = state.cursorX;
+      const fromY = state.cursorY;
+      const toX = fromX + dir.x * pixelLength;
+      const toY = fromY + dir.y * pixelLength;
+
+      state.elements.push({
+        type: "wall",
+        fromX,
+        fromY,
+        toX,
+        toY,
+        thickness: state.thickness,
+        meters: lengthMeters
+      });
+
+      state.cursorX = toX;
+      state.cursorY = toY;
+      renderScene();
+    }
+
+    function drawOpening(label, widthMeters, color) {
+      const dir = directionVectors[state.direction];
+      if (!dir) {
+        logMessage("Impostare prima una direzione per poter disegnare " + label.toLowerCase() + ".", "error");
+        return;
+      }
+
+      const horizontal = dir.x !== 0;
+      const width = horizontal ? widthMeters * state.scale : state.thickness * 1.4;
+      const height = horizontal ? state.thickness * 1.4 : widthMeters * state.scale;
+
+      state.elements.push({
+        type: "opening",
+        centerX: state.cursorX,
+        centerY: state.cursorY,
+        width,
+        height,
+        color,
+        label,
+        meters: widthMeters,
+        horizontal
+      });
+
+      renderScene();
+    }
+
+    function clearCanvas() {
+      state.anchorX = 100;
+      state.anchorY = 100;
+      state.cursorX = 100;
+      state.cursorY = 100;
+      state.direction = "destra";
+      state.elements = [];
+      renderScene();
+      logMessage("Canvas pulito. Punto iniziale ripristinato.", "success");
+    }
+
+    function savePNG() {
       const link = document.createElement("a");
-      link.download = "disegno_vocale.png";
+      link.download = `disegno_vocale_${Date.now()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+      logMessage("Disegno esportato come PNG.");
     }
 
-    disegnaGriglia();
+    function parseNumbers(text) {
+      return (text.match(/\d+[\.,]?\d*/g) || []).map(value => parseFloat(value.replace(",", ".")));
+    }
+
+    function formatMeters(value) {
+      return `${value.toLocaleString("it-IT", { maximumFractionDigits: 2 })} m`;
+    }
+
+    function detectDirection(command) {
+      return Object.keys(directionVectors).find(dir => command.includes(`verso ${dir}`) || command.includes(dir));
+    }
+
+    function handleCommand(command) {
+      const testo = command.toLowerCase();
+
+      if (testo.includes("pulisci")) {
+        clearCanvas();
+        return;
+      }
+
+      if (testo.includes("inizia")) {
+        const coords = parseNumbers(testo);
+        if (coords.length >= 2) {
+          state.anchorX = coords[0];
+          state.anchorY = coords[1];
+          state.cursorX = coords[0];
+          state.cursorY = coords[1];
+          renderScene();
+          logMessage(`Punto iniziale impostato su (${state.anchorX}, ${state.anchorY}).`, "success");
+        } else {
+          logMessage("Specificare due coordinate per impostare il punto iniziale.", "error");
+        }
+        return;
+      }
+
+      if (testo.includes("imposta spessore")) {
+        const values = parseNumbers(testo);
+        if (values.length) {
+          state.thickness = Math.max(2, values[0]);
+          logMessage(`Spessore pareti aggiornato a ${state.thickness}px.`, "success");
+        } else {
+          logMessage("Indica lo spessore desiderato in pixel.", "error");
+        }
+        return;
+      }
+
+      if (testo.includes("imposta scala") || testo.startsWith("scala")) {
+        const values = parseNumbers(testo);
+        if (values.length) {
+          state.scale = Math.max(10, values[0]);
+          renderScene();
+          logMessage(`Scala aggiornata: ${state.scale} pixel = 1 metro.`, "success");
+        } else {
+          logMessage("Indica una scala valida (pixel per metro).", "error");
+        }
+        return;
+      }
+
+      const newDirection = detectDirection(testo);
+      if (newDirection) {
+        state.direction = newDirection;
+        logMessage(`Direzione impostata verso ${newDirection}.`, "success");
+      }
+
+      if (testo.includes("parete") || testo.includes("linea")) {
+        const values = parseNumbers(testo);
+        if (values.length) {
+          drawWall(values[0]);
+          logMessage(`Parete da ${formatMeters(values[0])} disegnata verso ${state.direction}.`, "success");
+        } else {
+          logMessage("Specificare la lunghezza della parete in metri.", "error");
+        }
+        return;
+      }
+
+      if (testo.includes("porta")) {
+        const values = parseNumbers(testo);
+        const width = values[0] || 0.9;
+        drawOpening("Porta", width, "#8d6e63");
+        logMessage(`Porta da ${formatMeters(width)} inserita.`, "success");
+        return;
+      }
+
+      if (testo.includes("finestra")) {
+        const values = parseNumbers(testo);
+        const width = values[0] || 1.2;
+        drawOpening("Finestra", width, "#4fc3f7");
+        logMessage(`Finestra da ${formatMeters(width)} inserita.`, "success");
+        return;
+      }
+
+      logMessage("Comando non riconosciuto. Consulta la guida ai comandi.", "error");
+    }
+
+    function handleSpeechResult(event) {
+      const transcript = event.results[event.results.length - 1][0].transcript.trim();
+      logMessage(`Comando: "${transcript}"`);
+      handleCommand(transcript);
+    }
+
+    function handleSpeechError(event) {
+      logMessage(`Errore nel riconoscimento vocale: ${event.error}`, "error");
+    }
 
     function startListening() {
-      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      if (state.listening) {
+        logMessage("Il riconoscimento vocale è già attivo.");
+        return;
+      }
+
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Recognition) {
+        logMessage("Il riconoscimento vocale non è supportato da questo browser.", "error");
+        return;
+      }
+
+      const recognition = new Recognition();
       recognition.lang = "it-IT";
       recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.onresult = handleSpeechResult;
+      recognition.onerror = handleSpeechError;
+      recognition.onend = () => {
+        if (state.listening) {
+          recognition.start();
+        }
+      };
+
       recognition.start();
-
-      recognition.onresult = function(event) {
-        const comando = event.results[0][0].transcript.toLowerCase();
-        document.getElementById("debug").innerText = "Comando: " + comando;
-
-        // Punto iniziale
-        if (comando.includes("inizia") && comando.match(/\d+/g)) {
-          const numeri = comando.match(/\d+/g);
-          if (numeri.length >= 2) {
-            x = parseInt(numeri[0]);
-            y = parseInt(numeri[1]);
-            ctx.beginPath();
-            ctx.fillStyle = "red";
-            ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fill();
-          }
-          return;
-        }
-
-        // Spessore
-        if (comando.includes("imposta spessore")) {
-          const match = comando.match(/\d+/);
-          if (match) spessore = parseInt(match[0]);
-          return;
-        }
-
-        // Direzione
-        const direzioni = ["destra", "sinistra", "alto", "basso"];
-        direzioni.forEach(dir => {
-          if (comando.includes("verso " + dir)) direzione = dir;
-        });
-
-        // Parete
-        if (comando.includes("parete lunga") || comando.includes("linea lunga")) {
-          const match = comando.match(/\d+/);
-          if (match) {
-            const metri = parseFloat(match[0]);
-            const pixel = metri * 100;
-            let x2 = x, y2 = y;
-
-            if (direzione === "destra") x2 += pixel;
-            if (direzione === "sinistra") x2 -= pixel;
-            if (direzione === "alto") y2 -= pixel;
-            if (direzione === "basso") y2 += pixel;
-
-            ctx.beginPath();
-            ctx.fillStyle = "black";
-            if (direzione === "destra" || direzione === "sinistra") {
-              ctx.fillRect(Math.min(x, x2), y - spessore / 2, Math.abs(x2 - x), spessore);
-              ctx.fillStyle = "blue";
-              ctx.font = "14px Arial";
-              ctx.fillText(`${metri} m`, (x + x2) / 2 - 10, y - spessore);
-            } else {
-              ctx.fillRect(x - spessore / 2, Math.min(y, y2), spessore, Math.abs(y2 - y));
-              ctx.fillStyle = "blue";
-              ctx.font = "14px Arial";
-              ctx.fillText(`${metri} m`, x + spessore, (y + y2) / 2);
-            }
-
-            x = x2;
-            y = y2;
-          }
-        }
-
-        // Porta
-        if (comando.includes("porta")) {
-          ctx.fillStyle = "brown";
-          ctx.fillRect(x - 40, y - spessore / 2, 80, spessore);
-        }
-
-        // Finestra
-        if (comando.includes("finestra")) {
-          ctx.fillStyle = "lightblue";
-          ctx.fillRect(x - 50, y - spessore / 2, 100, spessore);
-        }
-      };
-
-      recognition.onerror = function(event) {
-        console.error("Errore nel riconoscimento vocale:", event.error);
-      };
+      state.recognition = recognition;
+      state.listening = true;
+      startButton.disabled = true;
+      stopButton.disabled = false;
+      logMessage("Ascolto avviato. Pronuncia un comando.", "success");
     }
+
+    function stopListening() {
+      if (!state.listening || !state.recognition) {
+        logMessage("Il riconoscimento vocale non è attivo.");
+        return;
+      }
+
+      state.listening = false;
+      state.recognition.stop();
+      state.recognition = null;
+      startButton.disabled = false;
+      stopButton.disabled = true;
+      logMessage("Ascolto vocale interrotto.");
+    }
+
+    function logMessage(message, type = "info") {
+      const entry = {
+        time: new Date().toLocaleTimeString(),
+        message,
+        type
+      };
+      state.messages.unshift(entry);
+      state.messages = state.messages.slice(0, 14);
+
+      debugContainer.innerHTML = state.messages
+        .map(item => `<div class="log-entry ${item.type}"><time>${item.time}</time><span>${item.message}</span></div>`)
+        .join("");
+    }
+
+    startButton.addEventListener("click", startListening);
+    stopButton.addEventListener("click", stopListening);
+    clearButton.addEventListener("click", clearCanvas);
+    saveButton.addEventListener("click", savePNG);
+
+    window.addEventListener("keydown", event => {
+      if (event.key.toLowerCase() === "l" && event.ctrlKey) {
+        event.preventDefault();
+        if (state.listening) {
+          stopListening();
+        } else {
+          startListening();
+        }
+      }
+    });
+
+    renderScene();
+    logMessage("Sistema pronto. Imposta un punto iniziale o avvia l'ascolto.");
   </script>
 </body>
+</html>
